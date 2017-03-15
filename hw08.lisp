@@ -477,7 +477,8 @@ the call to (in e l) blows up.
 (defunc abs (i)
   :input-contract (integerp i)
   :output-contract (natp (abs i))
-  (if (< i 0) (unary-- i)  i))
+  (if (< i 0) (unary-- i)  i))#|ACL2s-ToDo-Line|#
+
 
 #|
 (defunc f18 (n)
@@ -513,8 +514,12 @@ Terminates.
   (cond ((equal n m)                 1)
         ((< n m)  (f20 (+ n 1)(- m 1)))
         (t             (f20 (- n 1) m))))
-       
-...........
+
+Terminates.
+(defunc m-f20 (n m)
+ :ic (and (integerp n)(integerp m))
+ :oc (natp (m-f20 m n))
+ (if (< n m) m (- n 2)))
 
 (defunc  f21 (l i)
   :input-contract (and (listp l)(integerp i))
@@ -523,9 +528,8 @@ Terminates.
     l
     (f21 l (- i (len l)))))
 
-...........
-
-        
+Does not terminate.
+l=nil, i=1
 
 (defunc  f22 (l1 l2)
   :input-contract (and (listp l1)(listp l2))
@@ -534,7 +538,11 @@ Terminates.
         ((in (first l2) l1)  (f22 l1 (rest l2)))
         (t    (f22 (cons (first l2) l1) (rest l2)))))
 
-........
+Terminates
+(defunc m-f22 (l1 l2)
+ :ic (and (listp l1) (listp l2))
+ :oc (natp (m-f22 l1 l2))
+ (len l2))
 
 |#
 
