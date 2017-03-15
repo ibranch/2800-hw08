@@ -290,7 +290,8 @@ always be achieved as x increases.
     0
     (f9 i (rest x) i)))
     
-..........
+This is not admissible. Variable names in a function definition must be unique,
+and the variable i appears twice in the declaration of this function.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -303,7 +304,8 @@ always be achieved as x increases.
     0
     (f10 x (rest y))))
 
-..........
+This is not admissible. It does not check (endp y), yet blindly calls (rest y), 
+therefore violating the body contract if y is nil, as (rest nil) is a violation.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -316,7 +318,9 @@ always be achieved as x increases.
     (list n)
     (f11 (cons n (rest x)) (- n 1))))
 
-..........
+This is not admissible, due to a body contract violation on (rest x). We
+never check (endp x), but if n != 0 then we will attempt to call (rest x).
+Example of failure would be (f11 '() 2)
 
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -329,7 +333,19 @@ always be achieved as x increases.
       6
     (f12 (- 7 (f12 (- p 1))))))
 
-..........
+This is admissible.
+1. Body contract calls to f12 can only fail if p=1, which would result in 
+us attempting to call (f12 0), which would violate the function contract of f12.
+However, if p=1 we simply return 6, and we would never call (f12 0)
+2. Contract theorem holds because as long as input is positive (the IC), the result will either be
+6 (in the case that p=1), or p will be monotonically decreased until it is 1 in the recursive call,
+resulting in the recursive call returning 6, calling (f12 (- 7 6)) and returning 1. For sufficiently
+large values of p, this function will blow out your memory stack, but with infinite memory it works.
+3.
+(defunc m-f12 (p)
+ :ic (posp p)
+ :oc (natp (m-f12 p))
+ p)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -342,7 +358,27 @@ always be achieved as x increases.
         ((< i 1)       (f13 (- p 1) i))
         (t             (f13 i (- p 2)))))
  
-..........
+This is admissible.
+1. Body contract for < passes, as i is an integer. Body contract calls to f13
+pass - p must be positive, but if it fails the first cond then it must also be greater
+than 1, therefore calling (f13 (- p 1) i) will result in a new value of p no lower
+than 1, until the value of p is 1 and 9 is returned. In cases where the second cond
+also fails, we are guaranteed that i>=2, which satisfies the input contract f13.
+2. Contract theorem holds because as far as I can tell this function will either
+recurse (with valid inputs, as discussed in body contract checking) or return 9, which is posp.
+3.
+(defunc m-f13 (p i)
+ :ic (and (posp p)(integerp i))
+ :oc (natp (m-f13 p i))
+ (+ (abs i) p))
+ 
+ or, if you guys really want to be sticklers,
+ 
+(defunc m-f13 (p i)
+ :ic (and (posp p)(integerp i))
+ :oc (natp (m-f13 p i))
+ (if (< 0 i) (+ (unary-- i) p)
+             (+ i p))
 
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -356,7 +392,9 @@ always be achieved as x increases.
         ((> x y)        (f14 y x))
         (t              (f14 (- x y) y))))
 
-..........
+This is not admissible due to a body contract violation. If it tries to recurse
+and y > x (which is the implied third condition, as they are not equal and x is not greater than y),
+then the input for x will be a negative number, violating the (posp x) requirement of f14.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -370,7 +408,23 @@ always be achieved as x increases.
         ((< x y)     (f15 y x))
         (t           (* 5 (f15 (- x 1) y)))))
 
-..........
+This is admissible.
+1. The first cond will never be executed, as x >= 1 by the IC. Additionally, we
+are guaranteed by the third cond that if x and y are not equal, x is greater than y
+(because if x is less than y, we just recurse with the variable positions switched, and the first
+cond will still pass because y is under the same IC constraint as x). If x and y are equal, we are done.
+The final case is that x is strictly greater than y, and y is at least 1 (IC), so subtracting 1 from x will 
+result in a number no lower than 1, and the recursive call to f15 in the fourth conditional passes 
+body contract checking. In this case, we just keep subtracting 1 from x until it's equal to y.
+2. Function contract holds, this function essentially boils down to doing 5^(abs(x - y)), which is guranteed
+to be an integer.
+3. I'm not totally sure how to write this - after the first iteration, x will always decrease, but it could increase
+once - if y is greater than x, the value of x will increase from the first to the second interation, and decrease
+consistently after that. So here goes:
+(defunc m-f15 (x y)
+ :ic (and (posp x) (posp y))
+ :oc (natp (m-f15 x y))
+ (if (< x y) y x))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -383,7 +437,8 @@ always be achieved as x increases.
         ((endp x)     (list y))
         (t            (f16 (rest x) (- y 1)))))
   
-..........
+This is not admissible due to termination failure. If y is 0 and x is nil, then (len x) = 0, so
+we will never terminate and infinitely recurse with the arguments x=nil and y=0.
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -396,7 +451,8 @@ always be achieved as x increases.
         ((in e l)  t)
         (t         (cons (first l)(f17 (rest l))))))
 
-..........
+This is not admissible, because we have a free variable e that is not defined, so 
+the call to (in e l) blows up.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -421,8 +477,7 @@ always be achieved as x increases.
 (defunc abs (i)
   :input-contract (integerp i)
   :output-contract (natp (abs i))
-  (if (< i 0) (unary-- i)  i))#|ACL2s-ToDo-Line|#
-
+  (if (< i 0) (unary-- i)  i))
 
 #|
 (defunc f18 (n)
