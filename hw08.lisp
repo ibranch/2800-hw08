@@ -229,7 +229,7 @@ return a result of subtraction of 5's, 9's, and pos's, which assures an integer 
 3. 
 (defunc m-f5 (z)
   :input-contract (posp z)
-  :output-contract (integerp (m-f5 z))
+  :output-contract (natp (m-f5 z))
   z)
 
 
@@ -277,7 +277,7 @@ always be achieved as x increases.
 3. 
 (defunc m-f8 (x y)
   :input-contract (and (integerp x) (integerp y))
-  :output-contract (integerp (m-f8 x y))
+  :output-contract (natp (m-f8 x y))
   (- 0 x))
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -421,7 +421,7 @@ always be achieved as x increases.
 (defunc abs (i)
   :input-contract (integerp i)
   :output-contract (natp (abs i))
-  (if (< i 0) (unary-- i)  i))
+  (if (< i 0) (unary-- i)  i))#|ACL2s-ToDo-Line|#
 
 
 #|
@@ -432,9 +432,12 @@ always be achieved as x increases.
     14
     (-  (f18 (- n 1)) (* (* n n) n))))
 
-
-..........
-
+Terminates.
+(defunc m-f18 (n)
+  :input-contract (natp n)
+  :output-contract (natp (m-f18 n))
+  n)
+  
 
 (defunc  f19 (x)
   :input-contract (integerp x)
@@ -443,7 +446,11 @@ always be achieved as x increases.
         ((> x 0) (* x (f19 (- x 1))))
         (t (* x (f19 (+ x 1))))))
 
-..........
+Terminates.
+(defunc m-f19 (x)
+  :input-contract (integerp x)
+  :output-contract (natp (m-f19 x))
+  (abs x))
 
 (defunc  f20 (n m)
   :input-contract (and (integerp n)(integerp m))
@@ -451,9 +458,8 @@ always be achieved as x increases.
   (cond ((equal n m)                 1)
         ((< n m)  (f20 (+ n 1)(- m 1)))
         (t             (f20 (- n 1) m))))
-        
-..........
-  
+       
+...........
 
 (defunc  f21 (l i)
   :input-contract (and (listp l)(integerp i))
