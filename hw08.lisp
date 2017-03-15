@@ -156,7 +156,8 @@ without a lot of extra guidance from you (this isn't your responsibility).
     0
     (f1 (- p 1))))
     
-..........
+ This is not admissible. The stopping condition is when p = 0, but when p = 0,
+ the input contract is violated. (posp 0) is nil, so (f1 1) will violate body contract
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -169,7 +170,8 @@ without a lot of extra guidance from you (this isn't your responsibility).
         ((> a b)          (f2 a (- b 1)))
         (t                (f2 b a))))
 
-..........
+This is not admissible. It does not terminate given positive integers a b that
+are equal and not equal to 1. (f2 5 5) will call (f2 5 5)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -183,9 +185,18 @@ without a lot of extra guidance from you (this isn't your responsibility).
         ((< y x)     (f3 y x))
         (t           (f3 x (- y 1)))))
 
-..........
-
-
+This is admissible. 
+1. The body contracts hold, for < because all natp and posp are rationalp. f3 contracts hold
+as (f3 y x) could only violate the (posp y) input contract if x were 0, which is not possible
+due to the previous condition in the cond block. (f3 x (- y 1)) could violate the (posp y) input
+contract only if y were 1, but this is not possible due to the (equal y 1) condition earlier
+2. Contract theorem holds because given a valid input, the stopping condition (equal y 1) or
+(equal x 0) will return a pos or nat respectively, and all pos's are nats, satisifying the oc
+3. (defunc m-f3 (x y)
+      :input-contract (and (natp x) (posp y))
+      :output-contract (natp (m-f3 x y))
+      (+ x (/ y 2)))
+      
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 4.
 
@@ -196,8 +207,7 @@ without a lot of extra guidance from you (this isn't your responsibility).
     (list y)
     (f4 (list (first x)) (- y 1))))
 
-..........
-
+This is not admissible. It fails the body contract if x is nil. (f4 nil 10) causes error
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 5.
@@ -209,7 +219,18 @@ without a lot of extra guidance from you (this isn't your responsibility).
     9
     (- 5 (f5 (- z 1)))))
     
-..........
+This is admissible.
+1. The body contracts are satisfied, the - call will always have a 5 and an integer thanks
+to the output contract of f5, and f5's input contract will be satisfied because it can only
+be broken if z were 1 to make the call be (f5 0), which cannot happen because it would evaluate
+to 9 if (equal z 1) were true.
+2. Contract theorem holds because with valid input, the stopping condition of (equal z 1) will
+return a result of subtraction of 5's, 9's, and pos's, which assures an integer output.
+3. 
+(defunc m-f5 (z)
+  :input-contract (posp z)
+  :output-contract (integerp (m-f5 z))
+  z)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -222,20 +243,21 @@ without a lot of extra guidance from you (this isn't your responsibility).
     i
     (f6 (- f6 i))))
 
-..........
+This is not admissible. It contains a free variable f6 which violates the input contract of -
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 7.
 
 (defunc f7 (x y)
   :input-contract (and (listp x)(natp y))
-  :output-contract (natp (f7 x y))
+  :output-contract (natp (m-f7 x y))
   (cond ((equal y 0) (len x))
         ((endp x)    0)
         (t           (f7 (list y) (len x)))))
 
-..........
-
+This is not admissible. With any input other than an empty list as x or 0 as y, the function
+will not terminate, as it will always execute the t branch of the cond block, calling f7 with
+a list of length 1 for x and a nat for y
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 8.
@@ -247,7 +269,16 @@ without a lot of extra guidance from you (this isn't your responsibility).
     (+ x y)
     (+ (* 2 y) (f8 (+ x 1) (- y 1)))))
 
-..........
+This is admissible. 
+1. It holds the body contracts for >=, +, -, and f8 as all the inputs are integers regardless
+of the inputs of f8
+2. Contract theorem holds because with valid input, the stopping condition of (>= x 0) will
+always be achieved as x increases.
+3. 
+(defunc m-f8 (x y)
+  :input-contract (and (integerp x) (integerp y))
+  :output-contract (integerp (m-f8 x y))
+  (- 0 x))
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 9.
