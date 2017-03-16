@@ -663,9 +663,21 @@ For the first recursive call, we have:
          (< (m23 (- x 1) y (+ c 1)) (m23 x y c))
 Now prove the above using equational reasoning
 
-..........
+C1. (natp x)
+C2. (posp y)
+C3. (integerp c)
+C4. (or (not (equal x 0)) (not (equal y 1)))
+C5. (> x 0)
+----
+No derived context
 
+(< (m23 (- x 1) y (+ c 1)) (m23 x y c))
+= {def m23|((c (+ c 1)) (x (-x 1)))}
+(< (+ (- x 1) (* 6 y)) (+ x (* 6 y)))
+= {math}
+T
 
+QED
 
 For the second recursive call, we have:
 (implies (and (natp x) (posp y) (integerp c) 
@@ -674,7 +686,23 @@ For the second recursive call, we have:
          (< (m23 5 (- y 1) c) (m23 x y c))
 Now prove the above using equational reasoning
 
-.........
+C1. (natp x)
+C2. (posp y)
+C3. (integerp c)
+C4. (or (not (equal x 0)) (not (equal y 1)))
+C5. (not (> x 0))
+---------
+C6. x == 0 {c1, c5}
+C7. (not (equal y 1)) {c4, c6, logic}
+
+(< (m23 5 (- y 1) c) (m23 x y c))
+= {def m23|((x 5) (y (- y 1))} for LHS, def m23|((x 0)) for RHS}
+(< (+ 5 (* 6 (- y 1))) (+ 0 (* 6 y)))
+= {c7, math}
+T
+
+QED
+
 
 |#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -703,7 +731,7 @@ questionnaire.
 The following team members filled out the feedback survey provided by 
 the link above:
 ---------------------------------------------
-<firstname> <LastName>
-<firstname> <LastName>
+Izaak Branch
+Chris Kenyon
 
 |#
